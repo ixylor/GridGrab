@@ -127,24 +127,16 @@
     </script>
 
     <!-- Self-test mode: open fixtures.html?selftest to run the parser in-page without the extension. -->
+    <script src="/test/load-gridgrab.js"></script>
     <script>
       if (location.search.includes('selftest')) {
-        const loadScript = (src) => new Promise((resolve) => {
-          const script = document.createElement('script');
-          script.src = src;
-          script.onload = resolve;
-          document.head.appendChild(script);
-        });
-        loadScript('../src/lib/table-parser.js')
-          .then(() => loadScript('../src/lib/pagination.js'))
-          .then(() => loadScript('../src/lib/table-finder.js'))
-          .then(() => setTimeout(() => {
-            const found = GridGrab.findTables(document).map((t) => ({ id: t.element.id, label: t.label, pagination: t.pagination, ...t.data }));
-            window.__selftest = found;
-            const output = document.getElementById('selftest');
-            output.hidden = false;
-            output.textContent = JSON.stringify(found, null, 2);
-          }, 2200));
+        window.gridGrabReady.then(() => setTimeout(() => {
+          const found = GridGrab.findTables(document).map((t) => ({ id: t.element.id, label: t.label, pagination: t.pagination, ...t.data }));
+          window.__selftest = found;
+          const output = document.getElementById('selftest');
+          output.hidden = false;
+          output.textContent = JSON.stringify(found, null, 2);
+        }, 2200));
       }
     </script>
   </body>

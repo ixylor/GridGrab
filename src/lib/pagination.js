@@ -1,34 +1,37 @@
 /**
  * Pagination
  * ==========
- * Many tables only show one page of rows at a time ("Showing 1 to 50 of 61").
- * This file:
- *   - detects when a table is paginated,
- *   - finds the table's "Next" / "Previous" buttons,
- *   - walks through every page and collects the rows from each one.
+ * Many tables only show one page of rows at a time. This file:
+ *   - detects when a table is paginated (for the popup's "Include all pages"),
+ *   - walks through every page and collects all the rows.
  *
- * Reading DataTables tables directly (without clicking) happens in the popup,
- * because it needs the page's own JavaScript (see readAllDataTablesRows in popup.js).
+ * Moving between pages works two ways (see page-loader.js):
+ *   - Controls that update the table in place are pressed on the live page.
+ *   - Controls that would load a new web page (links, ASP.NET postbacks, form
+ *     buttons) are loaded in the background, so the user's page doesn't change.
  *
- * Depends on table-parser.js being loaded first.
+ * Reading DataTables tables directly (without changing pages) happens in the
+ * popup, because it needs the page's own JavaScript (see datatables-reader.js).
+ *
+ * Depends on table-parser.js, pager-controls.js and page-loader.js.
  */
 (function () {
   'use strict';
 
-  const { ARIA_TABLE, parseTable } = globalThis.GridGrab;
+  const {
+    ARIA_TABLE,
+    parseTable,
+    findNextControl,
+    findPreviousControl,
+    findFirstPageControl,
+    readPagerNumbers,
+    describeControl,
+    loadPage,
+  } = globalThis.GridGrab;
 
   // "Showing 1 to 50 of 61 entries", "Showing 51 - 61 of 61"
   const PAGE_SUMMARY_PATTERN = /showing\s+([\d,]+)\s*(?:to|-|–)\s*([\d,]+)\s+of\s+([\d,]+)/i;
   const PAGE_SUMMARY_SELECTOR = '.dataTables_info, .dt-info';
-
-  const CLICKABLE_SELECTOR = 'a, button, [role="button"]';
-  const BUTTON_WORDS = {
-    next: { words: ['next', 'next page'], symbols: ['›', '»', '>', '>>', '→'], className: /\bnext\b/i },
-    previous: { words: ['previous', 'prev', 'previous page'], symbols: ['‹', '«', '<', '<<', '←'], className: /\b(previous|prev)\b/i },
-  };
-
-  // How far up from the table we look for its pagination controls.
-  const MAX_ANCESTOR_LEVELS = 5;
 
   // Safety limits, so a broken page can never trap us in an endless loop.
   const MAX_PAGES = 500;
@@ -36,14 +39,18 @@
   const POLL_INTERVAL_MS = 150;
   const SETTLE_TIME_MS = 400;
 
+  // A short pause between background page loads, to go easy on the website.
+  const DELAY_BETWEEN_LOADS_MS = 200;
+
   // ---------------------------------------------------------------------------
   // Detecting pagination
   // ---------------------------------------------------------------------------
 
   /**
    * Returns null when the table isn't paginated, otherwise:
-   *   { shown: 50, total: 61 }     when the page tells us the total
-   *   { shown: 50, total: null }   when there's a Next button but no total
+   *   { shown: 50, total: 61 }                       the page states the total
+   *   { shown: 50, total: null, pages: 4, more }     the pager shows page numbers
+   *   { shown: 50, total: null, pages: null }        there's just a Next button
    */
   function detectPagination(table, visibleRowCount) {
     const summary = readPageSummary(table);
@@ -52,7 +59,16 @@
       return summary.total > shown ? { shown, total: summary.total } : null;
     }
 
-    return findPageButton(table, 'next') ? { shown: visibleRowCount, total: null } : null;
+    const hasOtherPages = findNextControl(table) || findPreviousControl(table);
+    if (!hasOtherPages) return null;
+
+    const pager = readPagerNumbers(table);
+    return {
+      shown: visibleRowCount,
+      total: null,
+      pages: pager ? pager.highestPage : null,
+      more: pager ? pager.hasMore : false,
+    };
   }
 
   function readPageSummary(table) {
@@ -86,88 +102,13 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Finding the Next / Previous buttons
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Looks for an enabled Next (or Previous) button that belongs to this table.
-   * We search outward from the table, but stop before reaching a container that
-   * also holds other tables, so we never press another table's buttons.
-   */
-  function findPageButton(table, direction) {
-    let container = table.parentElement;
-
-    for (let level = 0; level < MAX_ANCESTOR_LEVELS && container && container !== document.body; level++) {
-      if (containsOtherTables(container, table)) return null;
-
-      const button = Array.from(container.querySelectorAll(CLICKABLE_SELECTOR)).find(
-        (element) => !table.contains(element) && isPageButton(element, direction) && isUsable(element)
-      );
-      if (button) return button;
-
-      container = container.parentElement;
-    }
-    return null;
-  }
-
-  function containsOtherTables(container, table) {
-    // Header-only tables (e.g. the sticky-header copy DataTables makes) don't count.
-    const hasDataCells = (other) => other.querySelector('td, [role="cell"], [role="gridcell"]') !== null;
-
-    return Array.from(container.querySelectorAll(`table, ${ARIA_TABLE}`)).some(
-      (other) => other !== table && !other.contains(table) && !table.contains(other) && hasDataCells(other)
-    );
-  }
-
-  function isPageButton(element, direction) {
-    const { words, symbols, className } = BUTTON_WORDS[direction];
-
-    if (direction === 'next' && element.getAttribute('rel') === 'next') return true;
-    if (direction === 'previous' && element.getAttribute('rel') === 'prev') return true;
-
-    const label = (element.getAttribute('aria-label') || element.getAttribute('title') || '').trim().toLowerCase();
-    if (words.some((word) => label === word || label.startsWith(word + ' '))) return true;
-
-    const text = element.textContent.replace(/\s+/g, ' ').trim().toLowerCase();
-    if (words.includes(text) || symbols.includes(text)) return true;
-
-    const classes = typeof element.className === 'string' ? element.className : '';
-    return className.test(classes);
-  }
-
-  /** A button is usable if it's visible, enabled, and won't load a different web page. */
-  function isUsable(element) {
-    if (element.getClientRects().length === 0) return false;
-    if (element.disabled || element.getAttribute('aria-disabled') === 'true') return false;
-
-    // Bootstrap and DataTables mark the button or its <li> with a "disabled" class.
-    const isMarkedDisabled = (el) => el && typeof el.className === 'string' && /\bdisabled\b/.test(el.className);
-    if (isMarkedDisabled(element) || isMarkedDisabled(element.parentElement)) return false;
-
-    return !loadsAnotherPage(element);
-  }
-
-  /**
-   * A plain link like <a href="?page=2"> reloads the whole web page, which would
-   * stop this script. We only press buttons that update the table in place.
-   */
-  function loadsAnotherPage(element) {
-    if (element.tagName !== 'A') return false;
-    const href = element.getAttribute('href');
-    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return false;
-
-    const target = new URL(href, location.href);
-    const samePageIgnoringHash = target.href.split('#')[0] === location.href.split('#')[0];
-    return !samePageIgnoringHash;
-  }
-
-  // ---------------------------------------------------------------------------
   // Walking through the pages
   // ---------------------------------------------------------------------------
+  // While walking we keep track of "where we are": the table element (on the
+  // live page, or in a background copy of a later page) and that page's address.
 
   /**
-   * Presses Next until the last page, collecting every row along the way.
-   * Starts by going back to the first page so nothing is missed.
+   * Collects the rows from every page, starting from page 1.
    *
    * @param {Element} table
    * @param {(progress: {page: number, rowCount: number}) => void} onProgress
@@ -175,13 +116,13 @@
    */
   async function collectAllPages(table, onProgress = () => {}) {
     const headers = parseTable(table).headers;
-    let current = await goToFirstPage(table, headers);
+    let position = await goToFirstPage({ table, url: location.href }, headers);
 
     const pages = [];
     let previousRowsKey = null;
 
     for (let pageNumber = 1; pageNumber <= MAX_PAGES; pageNumber++) {
-      const data = parseTable(current);
+      const data = parseTable(position.table);
       const rowsKey = JSON.stringify(data.rows);
       if (rowsKey === previousRowsKey) break; // the page didn't actually change
 
@@ -189,12 +130,12 @@
       previousRowsKey = rowsKey;
       onProgress({ page: pageNumber, rowCount: countRows(pages) });
 
-      const nextButton = findPageButton(current, 'next');
-      if (!nextButton) break; // last page
+      const nextControl = findNextControl(position.table);
+      if (!nextControl) break; // last page
 
-      const nextTable = await pressAndWaitForNewRows(nextButton, current, headers, rowsKey);
-      if (!nextTable) break;
-      current = nextTable;
+      const nextPosition = await turnPage(position, nextControl, headers);
+      if (!nextPosition) break;
+      position = nextPosition;
     }
 
     return {
@@ -205,19 +146,47 @@
     };
   }
 
-  async function goToFirstPage(table, headers) {
-    let current = table;
+  /** Jumps to page 1 (or steps back with Previous) so no rows are missed. */
+  async function goToFirstPage(position, headers) {
+    const firstPageControl = findFirstPageControl(position.table);
+    if (firstPageControl) {
+      const moved = await turnPage(position, firstPageControl, headers);
+      if (moved) return moved;
+    }
 
     for (let step = 0; step < MAX_PAGES; step++) {
-      const previousButton = findPageButton(current, 'previous');
-      if (!previousButton) break;
+      const previousControl = findPreviousControl(position.table);
+      if (!previousControl) break;
 
-      const rowsKey = JSON.stringify(parseTable(current).rows);
-      const previousTable = await pressAndWaitForNewRows(previousButton, current, headers, rowsKey);
-      if (!previousTable) break;
-      current = previousTable;
+      const moved = await turnPage(position, previousControl, headers);
+      if (!moved) break;
+      position = moved;
     }
-    return current;
+    return position;
+  }
+
+  /**
+   * Uses a pagination control and returns the new position, or null if the
+   * page couldn't be changed.
+   */
+  async function turnPage(position, control, headers) {
+    const action = describeControl(control, position.url);
+
+    if (action.kind === 'unsupported') return null;
+
+    if (action.kind === 'click') {
+      // Buttons can only be pressed on the live page, not on a background copy.
+      if (position.table.ownerDocument !== document) return null;
+
+      const rowsKey = JSON.stringify(parseTable(position.table).rows);
+      const table = await pressAndWaitForNewRows(control, position.table, headers, rowsKey);
+      return table ? { table, url: position.url } : null;
+    }
+
+    await sleep(DELAY_BETWEEN_LOADS_MS);
+    const loaded = await loadPage(action);
+    const table = findSameTable(loaded.document, position.table, headers);
+    return table ? { table, url: loaded.url } : null;
   }
 
   /**
@@ -235,7 +204,7 @@
     while (Date.now() < deadline) {
       await sleep(POLL_INTERVAL_MS);
 
-      const current = relocateTable(table, headers);
+      const current = table.isConnected ? table : findSameTable(document, table, headers);
       if (!current) continue;
 
       const key = JSON.stringify(parseTable(current).rows);
@@ -251,12 +220,18 @@
     return null;
   }
 
-  /** Frameworks like React sometimes replace the whole table; find the new one by its headers. */
-  function relocateTable(table, headers) {
-    if (table.isConnected) return table;
+  /**
+   * Finds our table in another copy of the page (or after a framework
+   * re-rendered it): by its id if it has one, otherwise by its headers.
+   */
+  function findSameTable(doc, originalTable, headers) {
+    if (originalTable.id) {
+      const byId = doc.getElementById(originalTable.id);
+      if (byId) return byId;
+    }
 
     const sameHeaders = (candidate) => JSON.stringify(parseTable(candidate).headers) === JSON.stringify(headers);
-    return Array.from(document.querySelectorAll(`table, ${ARIA_TABLE}`)).find(sameHeaders) || null;
+    return Array.from(doc.querySelectorAll(`table, ${ARIA_TABLE}`)).find(sameHeaders) || null;
   }
 
   function countRows(pages) {

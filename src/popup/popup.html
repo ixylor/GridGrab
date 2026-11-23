@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>GridGrab</title>
     <link rel="stylesheet" href="popup.css" />
   </head>
@@ -27,7 +28,7 @@
     </main>
 
     <footer id="bulk-actions" class="app-footer" hidden>
-      <button id="download-all" type="button" class="button secondary full-width">
+      <button id="download-all" type="button" class="button full-width">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" /></svg>
         Download all tables as JSON
       </button>
@@ -73,7 +74,7 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" /></svg>
             JSON
           </button>
-          <button type="button" class="button ghost" data-action="copy" title="Copy as cells (paste into Excel or Google Sheets)">
+          <button type="button" class="button" data-action="copy" title="Copy as cells (paste into Excel or Google Sheets)">
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>
             <span class="button-text">Copy</span>
           </button>

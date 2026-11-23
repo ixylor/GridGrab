@@ -155,12 +155,45 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Pager rows
+  // ---------------------------------------------------------------------------
+  // Some tables keep their page links inside the table itself, as a row like
+  // "1 2 3 4 … Next" (ASP.NET GridView and many server-rendered admin tables).
+
+  const PAGER_CLASS_PATTERN = /\b(pager|pagination|paging|pagenav)\b/i;
+  const PAGE_WORDS = new Set(['first', 'last', 'next', 'previous', 'prev', 'page', 'of', 'go', '...', '…', '«', '»', '‹', '›', '<', '>', '<<', '>>', '←', '→']);
+  const CLICKABLE_SELECTOR = 'a, button, [role="button"], input[type="submit"], input[type="button"]';
+
+  /**
+   * A pager row is either marked as one by its class, or is a single cell
+   * spanning the table that contains nothing but page numbers and
+   * Next/Previous-style words, with at least one of them clickable.
+   */
+  function isPagerRow(row) {
+    const classes = typeof row.className === 'string' ? row.className : '';
+    if (PAGER_CLASS_PATTERN.test(classes)) return true;
+
+    const isSingleSpanningCell = row.cells.length === 1 && row.cells[0].colSpan > 1;
+    if (!isSingleSpanningCell || !row.querySelector(CLICKABLE_SELECTOR)) return false;
+
+    const words = row.textContent.split(/\s+/).filter(Boolean);
+    const isPageWord = (word) => /^\d+$/.test(word) || PAGE_WORDS.has(word.toLowerCase());
+    if (!words.every(isPageWord)) return false;
+
+    // Page numbers always go up: "1 2 3 4", never "12 3".
+    const numbers = words.filter((word) => /^\d+$/.test(word)).map(Number);
+    const goesUp = numbers.every((number, i) => i === 0 || number > numbers[i - 1]);
+    return numbers.length >= 2 && goesUp;
+  }
+
+  // ---------------------------------------------------------------------------
   // <table> elements
   // ---------------------------------------------------------------------------
 
   function parseHtmlTable(table) {
     // table.rows only includes this table's own rows, never a nested table's.
-    const rowElements = Array.from(table.rows);
+    // Pager rows ("1 2 3 4 Next") are navigation, not data, so they're left out.
+    const rowElements = Array.from(table.rows).filter((row) => !isPagerRow(row));
 
     const rows = rowElements.map((row) =>
       Array.from(row.cells).map((cell) => ({
@@ -178,8 +211,9 @@
    * still start with a row of <th> cells, so we count those instead.
    */
   function countHtmlHeaderRows(table, rowElements) {
-    if (table.tHead && table.tHead.rows.length > 0) {
-      return table.tHead.rows.length;
+    const rowsInHead = rowElements.filter((row) => table.tHead && row.parentElement === table.tHead).length;
+    if (rowsInHead > 0) {
+      return rowsInHead;
     }
 
     let count = 0;
@@ -236,6 +270,8 @@
 
   globalThis.GridGrab = Object.assign(globalThis.GridGrab || {}, {
     ARIA_TABLE,
+    CLICKABLE_SELECTOR,
+    isPagerRow,
     normalizeWhitespace,
     buildGrid,
     mergeHeaderRows,

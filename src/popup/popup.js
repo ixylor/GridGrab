@@ -12,6 +12,8 @@ const { makeColumnNames, selectColumns, toCSV, toJSON, toRecords, makeFileName }
 // Same files and order as "content_scripts" in manifest.json.
 const CONTENT_SCRIPT_FILES = [
   'src/lib/table-parser.js',
+  'src/lib/pager-controls.js',
+  'src/lib/page-loader.js',
   'src/lib/pagination.js',
   'src/lib/table-finder.js',
   'src/content/highlighter.js',
@@ -268,15 +270,19 @@ function fillHeading(card, table) {
   card.querySelector('.card-size').textContent = `${rows} · ${table.columnCount} columns`;
 }
 
+/** "61 rows in total · 50 shown on this page", "50 rows on this page · 4 pages", ... */
+function describePagination({ shown, total, pages, more }) {
+  if (total) return `${total} rows in total · ${shown} shown on this page`;
+  if (pages) return `${shown} rows on this page · ${pages}${more ? '+' : ''} pages`;
+  return `${shown} rows on this page · more on other pages`;
+}
+
 function setUpAllPagesSwitch(card, table) {
   if (!table.pagination) return;
 
-  const { shown, total } = table.pagination;
   const container = card.querySelector('.all-pages');
   container.hidden = false;
-  container.querySelector('.all-pages-detail').textContent = total
-    ? `${total} rows in total · ${shown} shown on this page`
-    : `${shown} rows shown on this page · more on other pages`;
+  container.querySelector('.all-pages-detail').textContent = describePagination(table.pagination);
 
   container.querySelector('.all-pages-toggle').addEventListener('change', (event) => {
     choices.get(table.id).includeAllPages = event.target.checked;

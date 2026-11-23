@@ -8,9 +8,11 @@ Chrome first (Manifest V3); written against the cross-browser WebExtensions API 
 ## Features
 
 - **Finds tables automatically.** Real `<table>` elements and ARIA grids (`role="table" | "grid" | "treegrid"`, common in React/Angular data grids). The toolbar badge shows how many tables the page has and updates as the page changes.
-- **Exports every page.** For paginated tables ("Showing 1 to 50 of 61"), switch on *Include all pages*:
-  - DataTables tables are read directly from the page's memory: instant, and nothing on screen changes.
-  - Other paginated tables are collected by pressing the table's *Next* button page by page, with progress shown in the popup.
+- **Exports every page.** For paginated tables, switch on *Include all pages*. GridGrab starts from page 1 and handles:
+  - **DataTables**: rows are read straight from the page's memory. Instant, and nothing on screen changes.
+  - **Next / Previous buttons and numbered page links** ("1 2 3 … 10 …"), including pagers inside the table itself (ASP.NET GridView and similar). The page-number row is never exported as data.
+  - **Pagers that update the table in place** are pressed on the page, waiting for each page to finish loading.
+  - **Pagers that reload the whole web page** (plain `?page=2` links, ASP.NET `__doPostBack` postbacks, form submit buttons) are loaded in the background with the same form values, so your page stays where it is.
 - **Choose your columns.** Tick the columns to keep and untick the ones to drop before exporting.
 - **CSV, JSON or Copy.** Copy puts tab-separated text on the clipboard that pastes into Excel or Google Sheets as cells. *Download all tables as JSON* exports every table on the page in one file.
 - **Handles messy tables.** Skips layout, presentation and hidden tables; expands `colspan` / `rowspan`; merges multi-row headers (`Sales / Q1`).
@@ -33,7 +35,9 @@ manifest.json                 MV3 manifest
 icons/icon.svg                icon source (PNG sizes are rendered from it)
 src/background.js             shows the table count on the toolbar badge
 src/lib/table-parser.js       turns one table element into { headers, rows, columnCount }
-src/lib/pagination.js         detects pagination and clicks through pages
+src/lib/pager-controls.js     finds Next / Previous / numbered page controls
+src/lib/page-loader.js        works out what a page control does; loads full-page pagers in the background
+src/lib/pagination.js         detects pagination and walks through every page
 src/lib/table-finder.js       finds data tables on a page and names them
 src/lib/export.js             column selection, CSV / JSON conversion, file names
 src/content/highlighter.js    outlines a table on the page while hovering it in the popup
@@ -42,6 +46,8 @@ src/popup/popup.*             popup UI
 src/popup/datatables-reader.js  reads all rows of a DataTables table (runs inside the page)
 test/export.test.js           unit tests for export.js
 test/fixtures.html            test page covering the tricky cases, including a paginated table
+test/load-gridgrab.js         loads GridGrab's page code into any test page (await gridGrabReady)
+scripts/serve.js              test server, including imitation WebForms and ?page=N sites
 test/popup-preview.html       the real popup with fake data, for design work
 ```
 
@@ -56,6 +62,8 @@ npm run icons     # re-renders icons/*.png from icons/icon.svg (uses your instal
 - `http://localhost:5179/test/fixtures.html` — open with the extension loaded to try every case.
 - `http://localhost:5179/test/fixtures.html?selftest` — runs the parser without the extension and prints what it finds.
 - `http://localhost:5179/test/popup-preview.html` — the popup in a normal tab with fake data.
+- `http://localhost:5179/test/webforms` — imitation ASP.NET GridView: numbered postback links that reload the page (choose Agra first).
+- `http://localhost:5179/test/linked?page=2` — pagination made of plain `?page=N` links.
 
 ## Porting notes
 
@@ -66,6 +74,7 @@ npm run icons     # re-renders icons/*.png from icons/icon.svg (uses your instal
 ## Not yet handled
 
 - Tables inside iframes (`all_frames` is off).
-- Pagination made of plain links that load a new web page (`<a href="?page=2">`): only the current page is exported.
+- Infinite scroll and "Load more" buttons: only the rows already on the page are exported.
+- Pagers that load a page from a different website (another domain) can't be followed.
 - Virtualized grids that only render the rows on screen: export covers just what's in the page.
 - Number/date type detection: all values are exported as strings.

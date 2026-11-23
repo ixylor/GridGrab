@@ -20,6 +20,16 @@
       pagination: { shown: 50, total: 61 },
     },
     {
+      // Long names, like the electoral-roll site, to check the layout doesn't overflow.
+      id: 3,
+      label: 'Table 2: AC Number, Part Number, Polling Station Name',
+      headers: ['AC Number', 'Part Number', 'Polling Station Name (मतदान केंद्र का नाम और पता)', 'Link'],
+      columnCount: 4,
+      visibleRows: Array.from({ length: 50 }, (_, i) => ['341', String(i + 1), `मतदान केंद्र ${i + 1}`, 'Download']),
+      allRows: Array.from({ length: 195 }, (_, i) => ['341', String(i + 1), `मतदान केंद्र ${i + 1}`, 'Download']),
+      pagination: { shown: 50, total: null, pages: 4, more: false },
+    },
+    {
       id: 2,
       label: 'Employees',
       headers: ['Name', 'Role', 'Salary'],

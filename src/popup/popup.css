@@ -1,40 +1,38 @@
 /* =============================================================================
-   Colors (light and dark)
+   Colors
+   A simple, mostly neutral palette. The accent (indigo, from the icon) is used
+   sparingly: switches, checkboxes, links and focus outlines.
    ============================================================================= */
 :root {
-  --background: #f8fafc;
-  --surface: #ffffff;
-  --text: #0f172a;
-  --muted-text: #64748b;
-  --border: #e2e8f0;
+  --background: #ffffff;
+  --subtle: #f4f4f5;
+  --text: #18181b;
+  --muted-text: #71717a;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+  --primary: #18181b;
+  --primary-hover: #3f3f46;
+  --primary-text: #ffffff;
   --accent: #4f46e5;
-  --accent-hover: #4338ca;
-  --accent-soft: #eef2ff;
-  --accent-text: #ffffff;
-  --success: #059669;
+  --success: #16a34a;
   --error: #dc2626;
-  --info-background: #eff6ff;
-  --info-border: #bfdbfe;
-  --shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.08);
   color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b1120;
-    --surface: #131c2e;
-    --text: #e2e8f0;
-    --muted-text: #94a3b8;
-    --border: #23304a;
+    --background: #18181b;
+    --subtle: #232326;
+    --text: #fafafa;
+    --muted-text: #a1a1aa;
+    --border: #2e2e33;
+    --border-strong: #3f3f46;
+    --primary: #fafafa;
+    --primary-hover: #d4d4d8;
+    --primary-text: #18181b;
     --accent: #818cf8;
-    --accent-hover: #a5b4fc;
-    --accent-soft: #1e2547;
-    --accent-text: #0b1120;
-    --success: #34d399;
+    --success: #4ade80;
     --error: #f87171;
-    --info-background: #142039;
-    --info-border: #1e3a8a;
-    --shadow: none;
   }
 }
 
@@ -43,6 +41,11 @@
    ============================================================================= */
 * {
   box-sizing: border-box;
+}
+
+/* Elements with display: flex ignore the hidden attribute unless told otherwise. */
+[hidden] {
+  display: none !important;
 }
 
 body {
@@ -55,8 +58,8 @@ body {
 }
 
 svg {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
   fill: none;
   stroke: currentColor;
@@ -72,8 +75,9 @@ svg {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding: 12px 14px;
-  background: var(--surface);
+  background: var(--background);
   border-bottom: 1px solid var(--border);
 }
 
@@ -86,13 +90,12 @@ svg {
 
 .brand h1 {
   margin: 0;
-  font-size: 15px;
-  letter-spacing: -0.01em;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .subtitle {
   margin: 0;
-  max-width: 230px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -101,20 +104,19 @@ svg {
 }
 
 .pill {
-  padding: 2px 10px;
+  flex-shrink: 0;
+  padding: 2px 8px;
   border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--subtle);
+  color: var(--muted-text);
   font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
 }
 
 .app-footer {
   position: sticky;
   bottom: 0;
   padding: 10px 12px;
-  background: var(--surface);
+  background: var(--background);
   border-top: 1px solid var(--border);
 }
 
@@ -129,15 +131,11 @@ svg {
   padding: 28px 16px;
   color: var(--muted-text);
   text-align: center;
+  overflow-wrap: anywhere; /* long error messages wrap instead of widening the popup */
 }
 
 .status.error {
   color: var(--error);
-}
-
-/* Elements with display: flex ignore the hidden attribute unless told otherwise. */
-[hidden] {
-  display: none !important;
 }
 
 .status:not(.loading) .spinner {
@@ -145,10 +143,10 @@ svg {
 }
 
 .spinner {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border: 2px solid var(--border);
-  border-top-color: var(--accent);
+  border-top-color: var(--text);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -161,46 +159,50 @@ svg {
 
 /* =============================================================================
    Table cards
+   Long text (table names, column names) must shrink and end in "…" instead of
+   stretching the popup wider. Flex and grid items only shrink below their text
+   width when given min-width: 0.
    ============================================================================= */
 .table-list {
   list-style: none;
   margin: 0;
   padding: 10px;
   display: grid;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
 }
 
 .card {
+  min-width: 0;
   padding: 12px;
-  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: var(--shadow);
+  border-radius: 8px;
   transition: border-color 0.15s;
 }
 
 .card:hover {
-  border-color: var(--accent);
+  border-color: var(--border-strong);
 }
 
 .card-heading {
   display: flex;
-  justify-content: space-between;
   align-items: baseline;
   gap: 10px;
 }
 
 .card-title {
-  font-weight: 600;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 600;
 }
 
 .card-size {
+  flex-shrink: 0;
   color: var(--muted-text);
   font-size: 12px;
-  white-space: nowrap;
 }
 
 /* ---- "Include all pages" switch ---- */
@@ -210,14 +212,9 @@ svg {
   gap: 10px;
   margin-top: 10px;
   padding: 8px 10px;
-  border: 1px solid var(--info-border);
-  border-radius: 8px;
-  background: var(--info-background);
+  border-radius: 6px;
+  background: var(--subtle);
   cursor: pointer;
-}
-
-.all-pages[hidden] {
-  display: none;
 }
 
 .all-pages input {
@@ -229,10 +226,10 @@ svg {
 .switch {
   position: relative;
   flex-shrink: 0;
-  width: 30px;
-  height: 18px;
+  width: 28px;
+  height: 16px;
   border-radius: 999px;
-  background: var(--border);
+  background: var(--border-strong);
   transition: background 0.15s;
 }
 
@@ -241,11 +238,10 @@ svg {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: #ffffff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   transition: transform 0.15s;
 }
 
@@ -263,9 +259,14 @@ svg {
 }
 
 .all-pages-text {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   font-size: 12px;
+}
+
+.all-pages-text strong {
+  font-weight: 500;
 }
 
 .all-pages-detail {
@@ -274,19 +275,23 @@ svg {
 
 /* ---- Column picker ---- */
 .column-picker {
-  margin-top: 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
 }
 
 .column-picker summary {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 10px;
+  padding: 8px 0 2px;
   cursor: pointer;
   list-style: none;
-  font-weight: 500;
+  color: var(--muted-text);
+  font-size: 12px;
+}
+
+.column-picker summary:hover {
+  color: var(--text);
 }
 
 .column-picker summary::-webkit-details-marker {
@@ -295,9 +300,6 @@ svg {
 
 .column-summary {
   margin-left: auto;
-  color: var(--muted-text);
-  font-size: 12px;
-  font-weight: 400;
 }
 
 .column-summary.warning {
@@ -305,7 +307,8 @@ svg {
 }
 
 .chevron {
-  color: var(--muted-text);
+  width: 14px;
+  height: 14px;
   transition: transform 0.15s;
 }
 
@@ -316,30 +319,30 @@ svg {
 .column-tools {
   display: flex;
   gap: 12px;
-  padding: 0 10px 6px;
+  padding: 6px 0;
 }
 
 .column-list {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2px 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 8px;
   max-height: 160px;
   overflow-y: auto;
-  padding: 0 10px 10px;
+  padding-bottom: 4px;
 }
 
 .column-option {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
   padding: 3px 4px;
   border-radius: 4px;
   cursor: pointer;
-  min-width: 0;
 }
 
 .column-option:hover {
-  background: var(--accent-soft);
+  background: var(--subtle);
 }
 
 .column-option input {
@@ -353,7 +356,7 @@ svg {
   white-space: nowrap;
 }
 
-/* ---- Actions ---- */
+/* ---- Actions and progress ---- */
 .actions {
   display: flex;
   gap: 6px;
@@ -365,17 +368,13 @@ svg {
   align-items: center;
   gap: 8px;
   margin-top: 10px;
-  font-size: 12px;
   color: var(--muted-text);
-}
-
-.progress[hidden] {
-  display: none;
+  font-size: 12px;
 }
 
 .progress-track {
   flex: 1;
-  height: 4px;
+  height: 3px;
   overflow: hidden;
   border-radius: 999px;
   background: var(--border);
@@ -385,7 +384,7 @@ svg {
   width: 40%;
   height: 100%;
   border-radius: 999px;
-  background: var(--accent);
+  background: var(--text);
   animation: indeterminate 1.1s ease-in-out infinite;
 }
 
@@ -407,63 +406,55 @@ svg {
   justify-content: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid transparent;
-  border-radius: 7px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--text);
   font: inherit;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--subtle);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .button:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
+/* CSV is the main action. */
 .button.primary {
   flex: 1;
-  background: var(--accent);
-  color: var(--accent-text);
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-text);
 }
 
 .button.primary:hover:not(:disabled) {
-  background: var(--accent-hover);
+  border-color: var(--primary-hover);
+  background: var(--primary-hover);
 }
 
 .button.outline {
   flex: 1;
-  background: transparent;
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.button.outline:hover:not(:disabled) {
-  background: var(--accent-soft);
-}
-
-.button.ghost {
-  background: transparent;
-  border-color: var(--border);
-  color: var(--text);
-}
-
-.button.ghost:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.button.secondary {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.button.secondary:hover:not(:disabled) {
-  border-color: var(--accent);
 }
 
 .button.done {
-  color: var(--success);
   border-color: var(--success);
+  color: var(--success);
+}
+
+.button.primary.done {
+  background: var(--success);
+  color: #ffffff;
 }
 
 .full-width {

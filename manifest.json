@@ -23,9 +23,15 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*", "file:///*"],
+      "matches": [
+        "http://*/*",
+        "https://*/*",
+        "file:///*"
+      ],
       "js": [
         "src/lib/table-parser.js",
+        "src/lib/pager-controls.js",
+        "src/lib/page-loader.js",
         "src/lib/pagination.js",
         "src/lib/table-finder.js",
         "src/content/highlighter.js",
@@ -34,5 +40,9 @@
       "run_at": "document_idle"
     }
   ],
-  "permissions": ["activeTab", "scripting", "downloads"]
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "downloads"
+  ]
 }
