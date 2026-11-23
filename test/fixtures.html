@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>GridGrab test fixtures</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 900px; margin: 24px auto; padding: 0 16px; }
+      table { border-collapse: collapse; margin: 8px 0 24px; }
+      td, th { border: 1px solid #ccc; padding: 4px 8px; }
+      [role="grid"] { display: grid; margin: 8px 0 24px; }
+      [role="row"] { display: grid; grid-template-columns: repeat(3, 120px); }
+      [role="row"] > * { border: 1px solid #ccc; padding: 4px 8px; }
+      #selftest { white-space: pre-wrap; background: #f3f4f6; padding: 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>GridGrab fixtures</h1>
+    <p>Open this file with the extension loaded. Expected: badge shows <strong>7</strong>, then <strong>8</strong> after ~2s. The outer layout table, the presentation table and the hidden table are skipped; the small table nested inside the layout table is kept.</p>
+
+    <h2>1. Simple thead/tbody</h2>
+    <table id="t-simple">
+      <caption>Employees</caption>
+      <thead><tr><th>Name</th><th>Role</th><th>Salary</th></tr></thead>
+      <tbody>
+        <tr><td>Ada</td><td>Engineer</td><td>120,000</td></tr>
+        <tr><td>Grace "Amazing" Hopper</td><td>Admiral</td><td>99,000</td></tr>
+      </tbody>
+    </table>
+
+    <h2>2. No thead, header row of &lt;th&gt;</h2>
+    <table id="t-th-row">
+      <tr><th>City</th><th>Country</th></tr>
+      <tr><td>Paris</td><td>France</td></tr>
+      <tr><td>Kyoto</td><td>Japan</td></tr>
+    </table>
+
+    <h2>3. Colspan / rowspan with two header rows</h2>
+    <table id="t-spans">
+      <thead>
+        <tr><th rowspan="2">Region</th><th colspan="2">Sales</th></tr>
+        <tr><th>Q1</th><th>Q2</th></tr>
+      </thead>
+      <tbody>
+        <tr><td rowspan="2">North</td><td>10</td><td>12</td></tr>
+        <tr><td>11</td><td>13</td></tr>
+        <tr><td>South</td><td colspan="2">n/a</td></tr>
+      </tbody>
+    </table>
+
+    <h2>4. No headers, tricky cell text</h2>
+    <table id="t-noheaders">
+      <tr><td>a,b</td><td>line one<br />line two</td></tr>
+      <tr><td> spaced </td><td>&nbsp;nbsp&nbsp;</td></tr>
+    </table>
+
+    <h2>5. ARIA grid (div-based)</h2>
+    <div role="grid" id="t-aria" aria-label="Div grid">
+      <div role="row"><div role="columnheader">Ticker</div><div role="columnheader">Price</div><div role="columnheader">Change</div></div>
+      <div role="row"><div role="gridcell">ACME</div><div role="gridcell">10.50</div><div role="gridcell">+1%</div></div>
+      <div role="row"><div role="gridcell">INIT</div><div role="gridcell">3.20</div><div role="gridcell">-2%</div></div>
+    </div>
+
+    <h2>Should be skipped: layout table, presentation table, hidden table</h2>
+    <table id="t-layout">
+      <tr><td><table><tr><td>nested</td><td>x</td></tr><tr><td>y</td><td>z</td></tr></table></td><td>sidebar</td></tr>
+    </table>
+    <table id="t-presentation" role="presentation"><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></table>
+    <table id="t-hidden" style="display:none"><tr><th>x</th></tr><tr><td>1</td></tr></table>
+
+    <h2>6. Dynamically added (after 2s)</h2>
+    <div id="dynamic"></div>
+
+    <h2>7. Paginated (custom script, not DataTables)</h2>
+    <p>23 orders, 10 per page, starts on page 2 and loads each page after a short delay. "Include all pages" should export all 23.</p>
+    <div id="paged">
+      <table id="t-paged">
+        <thead><tr><th>Order</th><th>Customer</th><th>Total</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="pager">
+        <button type="button" id="paged-prev">Previous</button>
+        <span id="paged-info"></span>
+        <button type="button" id="paged-next">Next</button>
+      </div>
+    </div>
+
+    <pre id="selftest" hidden></pre>
+
+    <script>
+      // A tiny paginated table, like the ones many admin dashboards use.
+      (function () {
+        const PAGE_SIZE = 10;
+        const orders = Array.from({ length: 23 }, (_, i) => [`#${1001 + i}`, `Customer ${i + 1}`, `₹${(i + 1) * 150}`]);
+        const body = document.querySelector('#t-paged tbody');
+        const info = document.getElementById('paged-info');
+        const previous = document.getElementById('paged-prev');
+        const next = document.getElementById('paged-next');
+        const lastPage = Math.ceil(orders.length / PAGE_SIZE) - 1;
+        let page = 1;
+
+        function render() {
+          const first = page * PAGE_SIZE;
+          const rows = orders.slice(first, first + PAGE_SIZE);
+          body.innerHTML = rows.map((cells) => `<tr>${cells.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('');
+          info.textContent = `Showing ${first + 1} to ${first + rows.length} of ${orders.length}`;
+          previous.disabled = page === 0;
+          next.disabled = page === lastPage;
+        }
+
+        function goTo(newPage) {
+          body.innerHTML = '<tr><td colspan="3">Loading…</td></tr>';
+          setTimeout(() => {
+            page = newPage;
+            render();
+          }, 250);
+        }
+
+        previous.addEventListener('click', () => goTo(page - 1));
+        next.addEventListener('click', () => goTo(page + 1));
+        render();
+      })();
+
+      setTimeout(() => {
+        document.getElementById('dynamic').innerHTML =
+          '<table id="t-dynamic"><thead><tr><th>Late</th><th>Data</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>';
+      }, 2000);
+    </script>
+
+    <!-- Self-test mode: open fixtures.html?selftest to run the parser in-page without the extension. -->
+    <script>
+      if (location.search.includes('selftest')) {
+        const loadScript = (src) => new Promise((resolve) => {
+          const script = document.createElement('script');
+          script.src = src;
+          script.onload = resolve;
+          document.head.appendChild(script);
+        });
+        loadScript('../src/lib/table-parser.js')
+          .then(() => loadScript('../src/lib/pagination.js'))
+          .then(() => loadScript('../src/lib/table-finder.js'))
+          .then(() => setTimeout(() => {
+            const found = GridGrab.findTables(document).map((t) => ({ id: t.element.id, label: t.label, pagination: t.pagination, ...t.data }));
+            window.__selftest = found;
+            const output = document.getElementById('selftest');
+            output.hidden = false;
+            output.textContent = JSON.stringify(found, null, 2);
+          }, 2200));
+      }
+    </script>
+  </body>
+</html>

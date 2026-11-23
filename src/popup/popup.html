@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>GridGrab</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <img src="../../icons/icon-48.png" alt="" width="28" height="28" />
+        <div>
+          <h1>GridGrab</h1>
+          <p id="page-host" class="subtitle"></p>
+        </div>
+      </div>
+      <span id="table-count" class="pill" hidden></span>
+    </header>
+
+    <main>
+      <div id="status" class="status">
+        <span class="spinner" aria-hidden="true"></span>
+        <span class="status-text">Looking for tables…</span>
+      </div>
+
+      <ul id="table-list" class="table-list" hidden></ul>
+    </main>
+
+    <footer id="bulk-actions" class="app-footer" hidden>
+      <button id="download-all" type="button" class="button secondary full-width">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" /></svg>
+        Download all tables as JSON
+      </button>
+    </footer>
+
+    <!-- One card per table, filled in by popup.js -->
+    <template id="table-card-template">
+      <li class="card">
+        <div class="card-heading">
+          <span class="card-title"></span>
+          <span class="card-size"></span>
+        </div>
+
+        <!-- Shown only for paginated tables -->
+        <label class="all-pages" hidden>
+          <input type="checkbox" class="all-pages-toggle" checked />
+          <span class="switch" aria-hidden="true"></span>
+          <span class="all-pages-text">
+            <strong>Include all pages</strong>
+            <span class="all-pages-detail"></span>
+          </span>
+        </label>
+
+        <details class="column-picker">
+          <summary>
+            <span>Columns</span>
+            <span class="column-summary"></span>
+            <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+          </summary>
+          <div class="column-tools">
+            <button type="button" class="link-button" data-select="all">Select all</button>
+            <button type="button" class="link-button" data-select="none">Clear</button>
+          </div>
+          <div class="column-list"></div>
+        </details>
+
+        <div class="actions">
+          <button type="button" class="button primary" data-format="csv">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" /></svg>
+            CSV
+          </button>
+          <button type="button" class="button outline" data-format="json">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" /></svg>
+            JSON
+          </button>
+          <button type="button" class="button ghost" data-action="copy" title="Copy as cells (paste into Excel or Google Sheets)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>
+            <span class="button-text">Copy</span>
+          </button>
+        </div>
+
+        <div class="progress" hidden>
+          <div class="progress-track"><div class="progress-bar"></div></div>
+          <span class="progress-text"></span>
+        </div>
+      </li>
+    </template>
+
+    <script src="../lib/export.js"></script>
+    <script src="datatables-reader.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

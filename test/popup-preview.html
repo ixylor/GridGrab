@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>GridGrab popup preview</title>
+    <!-- Resolve the popup's relative paths (popup.css, ../lib/export.js, ../../icons) from its real folder. -->
+    <base href="/src/popup/" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <!--
+      Design preview of the real popup with fake data (npm run serve, then open
+      http://localhost:5179/test/popup-preview.html). Not part of the extension.
+    -->
+    <script src="/test/chrome-mock.js"></script>
+    <script>
+      (async function loadPopup() {
+        const html = await (await fetch('popup.html')).text();
+        const popup = new DOMParser().parseFromString(html, 'text/html');
+        const scripts = Array.from(popup.body.querySelectorAll('script')).map((script) => script.getAttribute('src'));
+        popup.body.querySelectorAll('script').forEach((script) => script.remove());
+        document.body.append(...popup.body.childNodes);
+
+        for (const src of scripts) {
+          await new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            document.body.appendChild(script);
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

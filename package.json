@@ -1,0 +1,12 @@
+{
+  "name": "gridgrab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser extension that detects tables on web pages and exports them as CSV or JSON.",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\"",
+    "serve": "node scripts/serve.js",
+    "icons": "node scripts/render-icons.js"
+  },
+  "license": "Apache-2.0"
+}
