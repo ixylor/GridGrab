@@ -122,7 +122,7 @@
     let previousRowsKey = null;
 
     for (let pageNumber = 1; pageNumber <= MAX_PAGES; pageNumber++) {
-      const data = parseTable(position.table);
+      const data = withoutRepeatedHeaders(parseTable(position.table), headers);
       const rowsKey = JSON.stringify(data.rows);
       if (rowsKey === previousRowsKey) break; // the page didn't actually change
 
@@ -232,6 +232,17 @@
 
     const sameHeaders = (candidate) => JSON.stringify(parseTable(candidate).headers) === JSON.stringify(headers);
     return Array.from(doc.querySelectorAll(`table, ${ARIA_TABLE}`)).find(sameHeaders) || null;
+  }
+
+  /**
+   * Every page repeats the header row. On pages loaded in the background we
+   * can't always tell it's a header (no styles to check), so drop any row
+   * that's identical to the headers.
+   */
+  function withoutRepeatedHeaders(data, headers) {
+    if (headers.length === 0) return data;
+    const headersKey = JSON.stringify(headers);
+    return { ...data, rows: data.rows.filter((row) => JSON.stringify(row) !== headersKey) };
   }
 
   function countRows(pages) {

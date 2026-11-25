@@ -187,6 +187,63 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Header rows made of ordinary cells
+  // ---------------------------------------------------------------------------
+
+  // Numbers, amounts, percentages and dates: "1,200", "₹100", "-2%", "23/11/2026".
+  const NUMBER_LIKE = /^[\s\d₹$€£¥%+\-−.,:/()]+$/;
+  const HEADER_ROW_CLASS = /\b(head|header|heading|title)\b/i;
+  const MAX_HEADER_LABEL_LENGTH = 80;
+
+  /**
+   * The first row counts as a header when all of it is short, distinct text
+   * (no numbers or dates) and either:
+   *   - it's styled differently from the next row (bold, or a "header" class), or
+   *   - it sits above a column of numbers, e.g. "Amount" above "₹100", "₹250".
+   */
+  function firstRowLooksLikeHeader(rowElements, grid) {
+    if (grid.length < 2) return false;
+
+    const [firstRow, secondRow] = rowElements;
+    const labels = Array.from(firstRow.cells).map((cell) => normalizeWhitespace(cell.textContent));
+    const isLabel = (text) => text !== '' && text.length <= MAX_HEADER_LABEL_LENGTH && !NUMBER_LIKE.test(text);
+    if (!labels.every(isLabel) || new Set(labels).size !== labels.length) return false;
+
+    const looksDifferent =
+      HEADER_ROW_CLASS.test(firstRow.className) || (isBoldRow(firstRow) && !isBoldRow(secondRow));
+    return looksDifferent || sitsAboveNumbers(grid);
+  }
+
+  function isBoldRow(row) {
+    return row.cells.length > 0 && Array.from(row.cells).every(isBoldCell);
+  }
+
+  function isBoldCell(cell) {
+    // All of the text is inside <b> or <strong>.
+    const allText = cell.textContent.replace(/\s+/g, '');
+    const boldText = Array.from(cell.querySelectorAll('b, strong'))
+      .map((element) => element.textContent)
+      .join('')
+      .replace(/\s+/g, '');
+    if (allText && boldText === allText) return true;
+
+    // Bold through CSS. Pages loaded in the background have no styles to check
+    // (defaultView is null), so there we can only read the style attribute.
+    const view = cell.ownerDocument.defaultView;
+    if (view && parseInt(view.getComputedStyle(cell).fontWeight, 10) >= 600) return true;
+    return /font-weight\s*:\s*(bold|[6-9]00)/i.test(cell.getAttribute('style') || '');
+  }
+
+  function sitsAboveNumbers(grid) {
+    const body = grid.slice(1);
+    return grid[0].some((_, column) => {
+      const values = body.map((row) => row[column]).filter(Boolean);
+      const numbers = values.filter((value) => NUMBER_LIKE.test(value));
+      return values.length >= 2 && numbers.length / values.length >= 0.8;
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // <table> elements
   // ---------------------------------------------------------------------------
 
@@ -203,7 +260,16 @@
       }))
     );
 
-    return toTableData(buildGrid(rows), countHtmlHeaderRows(table, rowElements));
+    const grid = buildGrid(rows);
+    let headerRowCount = countHtmlHeaderRows(table, rowElements);
+
+    // Many sites build their header row from ordinary cells made bold, so
+    // there's no <th> or <thead>. Recognise those by how they look.
+    if (headerRowCount === 0 && firstRowLooksLikeHeader(rowElements, grid)) {
+      headerRowCount = 1;
+    }
+
+    return toTableData(grid, headerRowCount);
   }
 
   /**

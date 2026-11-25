@@ -7,7 +7,8 @@
  *   - download it as CSV or JSON, or copy it to the clipboard.
  */
 const browserApi = globalThis.browser ?? globalThis.chrome;
-const { makeColumnNames, selectColumns, toCSV, toJSON, toRecords, makeFileName } = globalThis.GridGrabExport;
+const { makeColumnNames, useFirstRowAsHeaders, selectColumns, toCSV, toJSON, toRecords, makeFileName } =
+  globalThis.GridGrabExport;
 
 // Same files and order as "content_scripts" in manifest.json.
 const CONTENT_SCRIPT_FILES = [
@@ -27,7 +28,10 @@ const BLOB_URL_LIFETIME_MS = 60_000;
 let activeTab = null;
 let pageTitle = '';
 
-/** What the user chose for each table, by table id: { selectedColumns: Set<number>, includeAllPages: boolean } */
+/**
+ * What the user chose for each table, by table id:
+ *   { selectedColumns: Set<number>, includeAllPages: boolean, firstRowIsHeader: boolean }
+ */
 const choices = new Map();
 
 /** Rows from every page, by table id, so we only walk the pages once per popup. */
@@ -92,14 +96,15 @@ async function readRowsFromDataTables(tableId) {
 // =============================================================================
 
 /**
- * Returns the table data the user asked for: all pages (if chosen) and only
- * the selected columns.
+ * Returns the table data the user asked for: all pages (if chosen), the first
+ * row as column names (if chosen), and only the selected columns.
  */
 async function getExportData(table) {
   const choice = choices.get(table.id);
   const wantsAllPages = table.pagination && choice.includeAllPages;
 
-  const data = wantsAllPages ? await getAllPagesData(table) : await getVisibleTableData(table.id);
+  let data = wantsAllPages ? await getAllPagesData(table) : await getVisibleTableData(table.id);
+  if (choice.firstRowIsHeader) data = useFirstRowAsHeaders(data);
   return selectColumns(data, choice.selectedColumns);
 }
 
@@ -248,10 +253,12 @@ function createCard(table) {
   choices.set(table.id, {
     selectedColumns: new Set(Array.from({ length: table.columnCount }, (_, index) => index)),
     includeAllPages: true,
+    firstRowIsHeader: false,
   });
 
   fillHeading(card, table);
   setUpAllPagesSwitch(card, table);
+  setUpFirstRowOption(card, table);
   setUpColumnPicker(card, table);
   setUpActions(card, table);
 
@@ -289,10 +296,42 @@ function setUpAllPagesSwitch(card, table) {
   });
 }
 
+/**
+ * Tables without a detected header row get "Column 1, Column 2…" as names.
+ * This option lets the user say "the first row holds the real names".
+ */
+function setUpFirstRowOption(card, table) {
+  if (table.headers.length > 0 || table.previewRows.length === 0) return;
+
+  const option = card.querySelector('.first-row-option');
+  option.hidden = false;
+  option.querySelector('.first-row-example').textContent = table.previewRows[0].filter(Boolean).join(', ');
+
+  option.querySelector('input').addEventListener('change', (event) => {
+    choices.get(table.id).firstRowIsHeader = event.target.checked;
+    updateColumnNames(card, table);
+  });
+}
+
+/** Column names as they'll appear in the export, given the user's choices. */
+function getColumnNames(table) {
+  const useFirstRow = choices.get(table.id).firstRowIsHeader;
+  const headers = useFirstRow ? table.previewRows[0] || [] : table.headers;
+  return makeColumnNames(headers, table.columnCount);
+}
+
+function updateColumnNames(card, table) {
+  const names = getColumnNames(table);
+  card.querySelectorAll('.column-option').forEach((option, index) => {
+    option.title = names[index];
+    option.querySelector('span').textContent = names[index];
+  });
+}
+
 function setUpColumnPicker(card, table) {
   const selected = choices.get(table.id).selectedColumns;
   const list = card.querySelector('.column-list');
-  const names = makeColumnNames(table.headers, table.columnCount);
+  const names = getColumnNames(table);
 
   names.forEach((name, index) => {
     const option = document.createElement('label');

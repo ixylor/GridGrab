@@ -1,6 +1,24 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { toCSV, toJSON, toRecords, makeColumnNames, makeFileName, selectColumns } = require('../src/lib/export.js');
+const {
+  toCSV,
+  toJSON,
+  toRecords,
+  makeColumnNames,
+  makeFileName,
+  selectColumns,
+  useFirstRowAsHeaders,
+} = require('../src/lib/export.js');
+
+test('useFirstRowAsHeaders: first row becomes the column names', () => {
+  const table = { headers: [], rows: [['Name', 'Age'], ['Ada', '36']], columnCount: 2 };
+  assert.deepEqual(useFirstRowAsHeaders(table), { headers: ['Name', 'Age'], rows: [['Ada', '36']], columnCount: 2 });
+});
+
+test('useFirstRowAsHeaders: empty table is left alone', () => {
+  const table = { headers: [], rows: [], columnCount: 0 };
+  assert.deepEqual(useFirstRowAsHeaders(table), table);
+});
 
 test('selectColumns: keeps chosen columns in original order', () => {
   const table = { headers: ['A', 'B', 'C'], rows: [['1', '2', '3'], ['4', '5', '6']], columnCount: 3 };

@@ -32,6 +32,17 @@
     return names;
   }
 
+  /**
+   * For tables whose column names sit in an ordinary first row:
+   *   { headers: [], rows: [['Name', 'Age'], ['Ada', '36']] }
+   *     -> { headers: ['Name', 'Age'], rows: [['Ada', '36']] }
+   */
+  function useFirstRowAsHeaders(table) {
+    if (table.rows.length === 0) return table;
+    const [firstRow, ...otherRows] = table.rows;
+    return { ...table, headers: firstRow, rows: otherRows };
+  }
+
   // ---------------------------------------------------------------------------
   // Choosing columns
   // ---------------------------------------------------------------------------
@@ -137,7 +148,7 @@
   // Public API
   // ---------------------------------------------------------------------------
 
-  const exportFormats = { makeColumnNames, selectColumns, toCSV, toRecords, toJSON, makeFileName };
+  const exportFormats = { makeColumnNames, useFirstRowAsHeaders, selectColumns, toCSV, toRecords, toJSON, makeFileName };
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = exportFormats;

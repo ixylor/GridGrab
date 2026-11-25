@@ -273,6 +273,33 @@ svg {
   color: var(--muted-text);
 }
 
+/* ---- "Use first row as column names" ---- */
+.first-row-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.first-row-option input {
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+}
+
+.first-row-option > span {
+  min-width: 0;
+}
+
+.first-row-example {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted-text);
+}
+
 /* ---- Column picker ---- */
 .column-picker {
   margin-top: 8px;

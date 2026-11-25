@@ -70,6 +70,29 @@
     <h2>6. Dynamically added (after 2s)</h2>
     <div id="dynamic"></div>
 
+    <h2>Header rows made of ordinary cells</h2>
+    <p>Expected column names: Name / City / Score for the first three tables. The last table has no header and must keep "Column 1, Column 2".</p>
+    <table id="t-bold-header">
+      <tr><td><b>Name</b></td><td><b>City</b></td><td><b>Score</b></td></tr>
+      <tr><td>Asha</td><td>Pune</td><td>Good</td></tr>
+      <tr><td>Ravi</td><td>Agra</td><td>Fair</td></tr>
+    </table>
+    <table id="t-css-header">
+      <tr style="font-weight: bold; background: #eee"><td>Name</td><td>City</td><td>Score</td></tr>
+      <tr><td>Asha</td><td>Pune</td><td>Good</td></tr>
+      <tr><td>Ravi</td><td>Agra</td><td>Fair</td></tr>
+    </table>
+    <table id="t-plain-header">
+      <tr><td>Name</td><td>City</td><td>Score</td></tr>
+      <tr><td>Asha</td><td>Pune</td><td>91</td></tr>
+      <tr><td>Ravi</td><td>Agra</td><td>78</td></tr>
+    </table>
+    <table id="t-no-header-text">
+      <tr><td>Asha</td><td>Pune</td><td>Good</td></tr>
+      <tr><td>Ravi</td><td>Agra</td><td>Fair</td></tr>
+      <tr><td>Meena</td><td>Kota</td><td>Good</td></tr>
+    </table>
+
     <h2>7. Paginated (custom script, not DataTables)</h2>
     <p>23 orders, 10 per page, starts on page 2 and loads each page after a short delay. "Include all pages" should export all 23.</p>
     <div id="paged">

@@ -30,6 +30,19 @@
       pagination: { shown: 50, total: null, pages: 4, more: false },
     },
     {
+      // No header row detected: the real column names are in the first row.
+      id: 4,
+      label: 'Table 3',
+      headers: [],
+      columnCount: 3,
+      visibleRows: [
+        ['District', 'Booths', 'Voters'],
+        ['Agra', '195', '1,52,300'],
+        ['Aligarh', '210', '1,61,045'],
+      ],
+      pagination: null,
+    },
+    {
       id: 2,
       label: 'Employees',
       headers: ['Name', 'Role', 'Salary'],

@@ -15,7 +15,7 @@ Chrome first (Manifest V3); written against the cross-browser WebExtensions API 
   - **Pagers that reload the whole web page** (plain `?page=2` links, ASP.NET `__doPostBack` postbacks, form submit buttons) are loaded in the background with the same form values, so your page stays where it is.
 - **Choose your columns.** Tick the columns to keep and untick the ones to drop before exporting.
 - **CSV, JSON or Copy.** Copy puts tab-separated text on the clipboard that pastes into Excel or Google Sheets as cells. *Download all tables as JSON* exports every table on the page in one file.
-- **Handles messy tables.** Skips layout, presentation and hidden tables; expands `colspan` / `rowspan`; merges multi-row headers (`Sales / Q1`).
+- **Handles messy tables.** Skips layout, presentation and hidden tables; expands `colspan` / `rowspan`; merges multi-row headers (`Sales / Q1`); recognises header rows built from ordinary bold cells. If a table still has no column names, tick *Use first row as column names* in the popup.
 - **Clean output.** CSV follows RFC 4180 and includes a UTF-8 byte-order mark so Excel shows ₹, é, 中文 correctly. JSON is an array of objects keyed by column name; blank headers become `Column 1`, duplicates become `Name (2)`.
 - Hovering a table in the popup outlines it on the page.
 
